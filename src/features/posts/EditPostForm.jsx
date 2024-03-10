@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { deletePost, selectPostById, updatePost } from './postSlice';
-
 import { selectAllUsers } from '../users/usersSlice';
+import {
+  selectPostById,
+  useDeletePostMutation,
+  useUpdatePostMutation,
+} from './postSlice';
 
 const EditPost = () => {
   // getting post id to fetch the post info
   const { postId } = useParams();
+
+  const [deletePost] = useDeletePostMutation();
+  const [updatePost, { isLoading }] = useUpdatePostMutation();
 
   // for navigation
   const navigate = useNavigate();
@@ -20,10 +26,6 @@ const EditPost = () => {
   const [title, setTitle] = useState(post?.title);
   const [content, setContent] = useState(post?.body);
   const [userId, setUserId] = useState(post?.userId);
-  const [requestStatus, setRequestStatus] = useState('idle');
-
-  // for dispatching fetch requests
-  const dispatch = useDispatch();
 
   // if post is not found then return a not found
   if (!post) {
@@ -46,25 +48,20 @@ const EditPost = () => {
   };
 
   // for knowing if the form can be submitted
-  const canSave =
-    [title, content, userId].every(Boolean) && requestStatus === 'idle';
+  const canSave = [title, content, userId].every(Boolean) && isLoading;
 
   // handle submission
-  const onSubmit = () => {
+  const onSubmit = async () => {
     // if the form is not valid then sent request
     if (canSave) {
       try {
         // send request and navigate to the post
-        setRequestStatus('pending');
-        dispatch(
-          updatePost({
-            id: postId,
-            title,
-            body: content,
-            userId,
-            reactions: post.reactions,
-          })
-        ).unwrap();
+        await updatePost({
+          id: post.id,
+          title,
+          body: content,
+          userId: Number(userId),
+        }).unwrap();
 
         setTitle('');
         setContent('');
@@ -72,17 +69,13 @@ const EditPost = () => {
         navigate(`/post/${postId}`);
       } catch (err) {
         console.error('Failed to save the post: ', err);
-      } finally {
-        // regardless if request failed or fulfilled set status to idle so new request can be made
-        setRequestStatus('idle');
       }
     }
   };
 
-  const onDelete = () => {
+  const onDelete = async () => {
     try {
-      setRequestStatus('pending');
-      dispatch(deletePost({ id: post.id })).unwrap();
+      await deletePost(post.id).unwrap();
 
       setTitle('');
       setContent('');
@@ -90,8 +83,6 @@ const EditPost = () => {
       navigate(`/`);
     } catch (err) {
       console.error('Failed to delete the post: ', err);
-    } finally {
-      setRequestStatus('idle');
     }
   };
 

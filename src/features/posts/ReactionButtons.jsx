@@ -1,5 +1,4 @@
-import { useDispatch } from 'react-redux';
-import { reactionAdded } from './postSlice';
+import { useAddReactionMutation } from './postSlice';
 
 import React from 'react';
 
@@ -12,20 +11,21 @@ const reactions = {
 };
 
 const ReactionButtons = ({ post }) => {
-  const dispatch = useDispatch();
+  const [addReaction] = useAddReactionMutation();
 
   const reactionButtons = Object.entries(reactions).map(([reaction, emoji]) => {
     return (
       <button
         key={reaction}
         type='button'
-        onClick={() => {
-          dispatch(
-            reactionAdded({
-              postId: post.id,
-              reaction: reaction,
-            })
-          );
+        onClick={async () => {
+          await addReaction({
+            postId: post.id,
+            reactions: {
+              ...post.reactions,
+              [reaction]: post.reactions[reaction] + 1,
+            },
+          });
         }}>
         {emoji} {post.reactions[reaction]}
       </button>

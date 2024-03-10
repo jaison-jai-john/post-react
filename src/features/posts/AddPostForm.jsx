@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { addNewPost } from '../posts/postSlice';
+import { useAddNewPostMutation } from '../posts/postSlice';
 import { selectAllUsers } from '../users/usersSlice';
 
 function AddPostForm() {
+  const [addNewPost, { isLoading }] = useAddNewPostMutation();
+
   // for controlled elements
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [userId, setUserId] = useState('');
-
-  // for knowing if a request should be made
-  const [addRequestStatus, setAddRequestStatus] = useState('idle');
 
   // for navigation
   const navigate = useNavigate();
@@ -20,11 +19,9 @@ function AddPostForm() {
   const users = useSelector(selectAllUsers);
 
   // for dispatching the action
-  const dispatch = useDispatch();
 
   // for knowing if the form can be submitted
-  const canSave =
-    [title, content, userId].every(Boolean) && addRequestStatus === 'idle';
+  const canSave = [title, content, userId] && !isLoading;
 
   // for handling the form submission
   const onAuthorChanged = (e) => {
@@ -40,15 +37,14 @@ function AddPostForm() {
   };
 
   // for handling the form submission
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     // preventing the default action of renavigating
     e.preventDefault();
 
     try {
       // the request is sent and status is changed so new request is not sent
-      setAddRequestStatus('pending');
       // the action is dispatched
-      dispatch(addNewPost({ title, content, userId })).unwrap();
+      await addNewPost({ title, content, userId: Number(userId) }).unwrap();
 
       // the form is reset and the user is navigated to the home page
       setTitle('');
@@ -57,9 +53,6 @@ function AddPostForm() {
       navigate('/');
     } catch (err) {
       console.log('Failed to save the post', err);
-    } finally {
-      // the request is completed and the status is changed so new request can be made
-      setAddRequestStatus('idle');
     }
   };
 
